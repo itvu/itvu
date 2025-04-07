@@ -1,0 +1,251 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>微小乐</title>
+    <link rel="stylesheet" href="../../static/css/mui.min.css">
+    <link rel="stylesheet" href="../../static/css/sweetalert2.min.css">
+    <script src="../../static/js/clipboard-v2.0.8.min.js"></script>
+    <style>
+        #guide {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+        }
+
+        #guide img {
+            width: 100%;
+            height: 100%;
+        }
+
+        #app {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .img-view {
+            border-radius: 10px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .des {
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin-top: 5px;
+        }
+
+        .des ul {
+            color: rgb(3, 3, 3);
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            line-height: 30px;
+        }
+
+        .install {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        .button {
+            padding: 10px;
+            margin-top: 15px;
+            border: none;
+            width: 100%;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #000 !important;
+        }
+
+        li,
+        ul {
+            list-style-type: none;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .des li:before {
+            content: "🔸";
+            margin-right: 10px;
+        }
+
+        .red {
+            color: #ff0000;
+        }
+    </style>
+    <script src="../../static/js/jquery-1.11.1.min.js"></script>
+    <script src="../../static/js/vue.global.min.js"></script>
+    <script src="../../static/js/mui.min.js"></script>
+    <script src="../../static/js/util.js"></script>
+    <script src="../../static/js/sweetalert2.min.js"></script>
+    <script>
+        let headerImg = "./images/IMG_08351.jpg"; // 顶部图片
+        let bottomImg = "./images/IMG_0835.JPG"; // 底部图片
+        let backgroundColor = "#0066FF"; // 全局背景
+        let apiUrl1 = "./redeem.php";
+
+
+        window.onload = function () {
+            var userAgent = navigator.userAgent;
+            if (userAgent.indexOf("MicroMessenger") !== -1 || userAgent.indexOf("QQ/") !== -1) {
+                alert("如果你看到此提示，就表示你不是使用的苹果Safari浏览器，请使用Safari打开,否则无法安装");
+            }
+        };
+
+        function inputCode_b(url) {
+            Swal.fire({
+                title: '请输入兑换码',
+                input: 'text',
+                inputPlaceholder: '请输入激活码',
+                text: "激活成功后请立即下载安装！",
+                inputAttributes: {
+                    autocapitalize: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: '确认',
+                cancelButtonText: '取消',
+                showLoaderOnConfirm: true,
+                preConfirm: async (code) => {
+                    try {
+                        const response = await fetch(url + "?code=" + code , {
+                            method: 'get',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.code === 1 && data.data.url) {
+                            const redirectLink = 'itms-beta://testflight.apple.com/v1/invite/' + data.data.url;
+const tfcode = data.data.tfcode;
+
+Swal.fire({
+    title: '激活成功！',
+    text: '激活成功后请3分钟内下载安装\nTF兑换码：' + tfcode,
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    footer: `
+        <!-- 将链接改为按钮形式 -->
+        <button id="testflight-button" style="margin-top: 10px;border:0;border-radius:.25em;background:initial;background-color:#7066e0;color:#fff;font-size:1em""> 
+            点击这里跳转至TestFlight</button>
+        <!-- 为复制按钮添加特定的class用于Clipboard.js识别 -->
+        <button class="copy-tfcode-btn" data-clipboard-text="${tfcode}" style="margin-top: 10px;border:0;border-radius:.25em;background:initial;background-color:#7066e0;color:#fff;font-size:1em">复制TF兑换码</button>
+    `,
+    didRender: () => {
+        // 初始化Clipboard.js
+        var clipboard = new ClipboardJS('.copy-tfcode-btn');
+        // 跳转TestFlight按钮点击事件
+        document.getElementById('testflight-button').addEventListener('click', () => {
+            window.location.href = redirectLink; // 或使用window.open(redirectLink)在新标签页打开
+        });
+        // 监听复制成功事件
+        clipboard.on('success', function(e) {
+            console.log('复制成功！');
+            // 可以在这里添加成功复制的UI反馈，如弹窗提示
+            Swal.fire('成功', 'TF兑换码已复制到剪贴板', 'success');
+            e.clearSelection(); // 清除选中状态
+        });
+
+        // 监听复制失败事件
+        clipboard.on('error', function(e) {
+            console.error('无法复制文本: ', e);
+            // 可以在这里添加复制失败的UI反馈
+            Swal.fire('错误', '复制TF兑换码出错', 'error');
+        });
+    },
+});
+                        } else {
+                            Swal.showValidationMessage(data.msg || '激活失败，请重试');
+                        }
+                    } catch (e) {
+                        Swal.showValidationMessage('激活失败，请重试');
+                    }
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <style type="text/css" media="all">
+            .content-am {
+                background-color: #f2ba03;
+            }
+        </style>
+        <n-config-provider :theme-overrides="{ common: { primaryColor: am } }">
+            <n-spin :show="loading">
+                <img class="img-view header-img" :src="../../static/picture/dce3a13332b642ad8bfad8ba26c802c4.gif" alt="">
+                <n-alert title="" v-show="loading" type="success">
+                    正在获取链接,请稍等...
+                </n-alert>
+                <div class="des" :style="{ backgroundColor: am }">
+                    <ul>
+                        <li>完美转发 超级防封 畅爽使用</li>
+                        <li>一个激活码可在一个设备上 <span class="red">一开</span></li>
+                        <li>一个激活码不可用在其他设备</li>
+                        <li>一个激活码可以下载<span class="red">一次</span></li>
+                        <li><span class="red">一码一开,需要更多开请使用多个激活码！</span></li>
+                        <li>安装界面过期时间与用户无关,请放心使用！</li>
+                    </ul>
+                </div>
+                <div class="install">
+                    <button class="button content-am" @click="installTf" :style="{ backgroundColor: am }">步骤一 →【安装TestFlight】</button>
+                    <button class="button content-am" @click="inputCode(to1)" :style="{ backgroundColor: am }">步骤二 →【TF安装 微小乐】</button>
+<!--
+                    <button class="button content-am" @click="redirectToLink" :style="{ backgroundColor: am }">备用安装地址</button>
+                    -->
+                </div>
+            </n-spin>
+        </n-config-provider>
+        <img class="img-view header-img" :src="../../static/picture/519f9bb69ed343788f2acecafebbfb72.gif" alt="">
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        const app = createApp({
+            data() {
+                return {
+                    appName: "星河",
+                    headerImg: headerImg,
+                    bottomImg: bottomImg,
+                    am: backgroundColor,
+                    to1: apiUrl1 || window.location.pathname,
+                    loading: false
+                };
+            },
+            methods: {
+                installTf() {
+                    window.open("https://apps.apple.com/cn/app/testflight/id899247664");
+                },
+                inputCode(url) {
+                    inputCode_b(url);
+                },
+                redirectToLink() {
+                    window.open("", "_blank");
+                }
+            }
+        }).mount('#app');
+    </script>
+
+    <div id="guide">
+        <img src="../../static/picture/guide.png" alt="引导图片">
+    </div>
+</body>
+
+</html>
